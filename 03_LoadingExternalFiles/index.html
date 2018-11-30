@@ -1,0 +1,118 @@
+<!--
+    Xiaowei Chen
+    xic220
+    CSE 313 - Fall 2018
+    Project 1: Use different DrawArray() to create an image
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="style.css" type="text/css">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://webglfundamentals.org/webgl/resources/webgl-utils.js"></script>
+    <script src="https://webglfundamentals.org/webgl/resources/m4.js"></script>
+    <script src="https://webglfundamentals.org/webgl/resources/primitives.js"></script>
+    <script src="https://webglfundamentals.org/webgl/resources/chroma.min.js"></script>
+    <script src="./dist/gl-matrix.js" type="text/javascript"></script>
+    <script id="shader-fs" type="x-shader/x-fragment">
+        precision mediump float;
+
+        varying vec2 v_texcoord;        
+
+        uniform sampler2D u_texture;
+        
+        varying vec3 v_lightWeighting;
+
+
+        void main() {
+
+           vec4 textureColor = texture2D(u_texture, v_texcoord);
+           gl_FragColor = vec4(textureColor.rgb * v_lightWeighting, textureColor.a);
+
+        }
+    </script>
+    <script id="shader-vs" type="x-shader/x-vertex">
+        attribute vec3 a_position;
+        
+        attribute vec2 a_textureCoord;
+
+        attribute vec3 a_normal;
+        uniform mat4 u_matrix;
+
+        uniform mat3 u_normalMatrix;
+	    uniform vec3 u_ambientColor;
+        uniform vec3 u_lightingDirection;
+	    uniform vec3 u_directionalColor;
+        uniform bool u_useLighting;
+
+        varying vec3 v_lightWeighting;
+        
+        varying vec2 v_texcoord;
+
+        void main() {
+            gl_Position = u_matrix * vec4(a_position, 1.0);
+            v_texcoord = a_textureCoord;
+            
+
+            if(!u_useLighting){
+                v_lightWeighting = vec3(1.0, 1.0, 1.0);
+            } else {
+                vec3 transformedNormal = u_normalMatrix * a_normal;
+                float directionalLightWeighting = max(dot(transformedNormal, u_lightingDirection), 0.0);
+                v_lightWeighting = u_ambientColor + u_directionalColor * directionalLightWeighting;
+            }
+        }
+    </script>
+    <script type="text/javascript" src="app.js"></script>
+    <title>Project 3</title>
+</head>
+
+
+<body onload="initGL()">
+    <canvas id="webGLcanvas"></canvas>
+    <div hidden>
+        <img id="sun" src="src/sun.jpg">
+        <img id="planet0" src="src/mercury.jpg">
+        <img id="planet1" src="src/venus.jpg">
+        <img id="planet2" src="src/earth.jpg">
+        <img id="planet3" src="src/mars.jpg">
+        <img id="planet4" src="src/jupiter.jpg">
+        <img id="planet5" src="src/saturn.jpg">
+        <img id="planet6" src="src/uranus.jpg">
+        <img id="planet7" src="src/neptune.jpg">
+        <img id="saturnRing" src="src/saturn_ring.jpg">
+    </div>
+    <div id="inputs">
+        <div style="float:left; margin-right: 50px">
+            <h3>Planets</h3>
+            <input type="checkbox" id="0" class="check" checked>Mercury
+            <input type="checkbox" id="1" class="check" checked>Venus
+            <input type="checkbox" id="2" class="check" checked>Earth
+            <input type="checkbox" id="3" class="check" checked>Mars
+            <input type="checkbox" id="4" class="check" checked>Jupiter
+            <input type="checkbox" id="5" class="check" checked>Saturn
+            <input type="checkbox" id="6" class="check" checked>Uranuus
+            <input type="checkbox" id="7" class="check" checked>Neptune
+        </div>
+        <div style="float:left; margin-right: 50px" id="track">
+            <h3>Track Planet/Sun</h3>
+            <input type="checkbox" id="9" class="track" checked>Sun
+            <input type="checkbox" id="10" class="track" >Mercury
+            <input type="checkbox" id="11" class="track" >Venus
+            <input type="checkbox" id="12" class="track" >Earth
+            <input type="checkbox" id="13" class="track" >Mars
+            <input type="checkbox" id="14" class="track" >Jupiter
+            <input type="checkbox" id="15" class="track" >Saturn
+            <input type="checkbox" id="16" class="track" >Uranuus
+            <input type="checkbox" id="17" class="track" >Neptune
+        </div>
+    </div>
+</body>
+
+
+</html>

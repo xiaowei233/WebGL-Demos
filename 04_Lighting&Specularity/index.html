@@ -1,0 +1,368 @@
+<!--
+    Xiaowei Chen
+    xic220
+    CSE 313 - Fall 2018
+    Project 1: Use different DrawArray() to create an image
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="style.css" type="text/css">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="./dist/gl-matrix-min.js" type="text/javascript"></script>
+    <script src="./dist/plyParser-byc02-proj4.js" type="text/javascript"></script>
+    <script src="./dist/webgl-utils.js" type="text/javascript"></script>
+    <script src="./dist/vec3.js" type="text/javascript"></script>
+
+    <script id="shader-fs" type="x-shader/x-fragment">
+        precision mediump float;
+
+        varying vec2 v_textureCoord;
+        varying vec3 v_lightWeighting;
+  
+        uniform sampler2D u_sampler;
+  
+        uniform bool u_useTextures;       // turns texturing on and off
+  
+        void main(void){
+            vec4 textureColor;
+            if(!u_useTextures){ // white by default
+                textureColor = vec4(1.0, 1.0, 1.0, 1.0);
+            }
+            else{
+                textureColor = texture2D(u_sampler, vec2(v_textureCoord.s, v_textureCoord.t));
+            }
+            // calculate color using lighting and textureColor
+            gl_FragColor = vec4(textureColor.rgb * v_lightWeighting, textureColor.a);
+        }
+    </script>
+
+
+    <!-- fragment shader (per frag) -->
+    <script id="perfrag-shader-fs" type="x-shader/x-fragment">
+            precision mediump float;
+      
+            // inputs from vertex shader
+            varying vec2 v_textureCoord;      // texture coordinate
+            varying vec3 v_position;          // position of fragment
+            varying vec3 v_transformedNormal; // transformed normal
+
+            uniform vec3 u_ambientColor;            // ambient color
+      
+            uniform vec3 u_lightDirection;       // direction of light
+            uniform vec3 u_directionalColor;	         // color of directional light
+            uniform bool u_useLighting;
+            uniform bool u_useTextures;
+            uniform bool u_useDirectionalLight;
+      
+            uniform sampler2D u_sampler;
+            uniform float u_materialShine;
+            uniform float u_lightSpecu;
+            uniform float u_materialSpecu;
+
+            uniform vec3 u_pointLightLoc1;
+            uniform vec3 u_pointLightLoc2;
+            uniform vec3 u_pointLightLoc3;
+            uniform vec3 u_pointLightLoc4;
+            uniform vec3 u_pointLightLoc5;
+
+            uniform vec3 u_pointLightCol1;
+            uniform vec3 u_pointLightCol2;
+            uniform vec3 u_pointLightCol3;
+            uniform vec3 u_pointLightCol4;
+            uniform vec3 u_pointLightCol5;
+    
+            uniform bool u_usePointLight1;
+            uniform bool u_usePointLight2;
+            uniform bool u_usePointLight3;
+            uniform bool u_usePointLight4;
+            uniform bool u_usePointLight5;
+      
+            void main(void){
+                float light_specularity = u_lightSpecu;
+                float material_specularity = u_materialSpecu;
+                float material_shine = u_materialShine;
+      
+                vec3 lightWeighting;
+                if(!u_useLighting){ // light is white by default
+                    lightWeighting = vec3(1.0, 1.0, 1.0);
+                }
+                else {
+                    vec3 directionalColor;
+                    float directionalWeight;
+                    if(!u_useDirectionalLight){
+                        directionalColor = vec3(0.0, 0.0, 0.0);
+                        directionalWeight = 0.0;
+                    } else{
+                        directionalColor = normalize(u_directionalColor);
+                        directionalWeight = max(dot(v_transformedNormal, normalize(u_lightDirection)), 0.0);
+                        vec3 reflection = reflect(normalize(u_lightDirection), normalize(v_transformedNormal));
+                        float dotProd = dot(normalize(reflection), normalize(v_position));
+                        directionalWeight = light_specularity * material_specularity * pow(max(dotProd,0.0), material_shine);
+                    }
+    
+                    float point1Weight;
+                    float point2Weight;
+                    float point3Weight;
+                    float point4Weight;
+                    float point5Weight;
+
+                    if(!u_usePointLight1){
+                        point1Weight = 0.0;
+                    } else {
+                        vec3 point1Dir = normalize(u_pointLightLoc1 - v_position.xyz);
+                        vec3 reflection = reflect(normalize(point1Dir), normalize(v_transformedNormal));
+                        float dotTemp = dot(normalize(reflection), normalize(v_position));
+                        point1Weight = light_specularity * material_specularity * pow(max(dotTemp, 0.0), material_shine);   
+                    }
+
+                    if(!u_usePointLight2){
+                        point2Weight = 0.0;
+                    } else {
+                        vec3 point2Dir = normalize(u_pointLightLoc2 - v_position.xyz);
+                        vec3 reflection = reflect(normalize(point2Dir), normalize(v_transformedNormal));
+                        float dotTemp = dot(normalize(reflection), normalize(v_position));
+                        point2Weight = light_specularity * material_specularity * pow(max(dotTemp, 0.0), material_shine);   
+                    }
+                    if(!u_usePointLight3){
+                        point3Weight = 0.0;
+                    } else {
+                        vec3 point3Dir = normalize(u_pointLightLoc3 - v_position.xyz);
+                        vec3 reflection = reflect(normalize(point3Dir), normalize(v_transformedNormal));
+                        float dotTemp = dot(normalize(reflection), normalize(v_position));
+                        point3Weight = light_specularity * material_specularity * pow(max(dotTemp, 0.0), material_shine);   
+                    }
+                    if(!u_usePointLight4){
+                        point4Weight = 0.0;
+                    } else {
+                        vec3 point4Dir = normalize(u_pointLightLoc4 - v_position.xyz);
+                        vec3 reflection = reflect(normalize(point4Dir), normalize(v_transformedNormal));
+                        float dotTemp = dot(normalize(reflection), normalize(v_position));
+                        point4Weight = light_specularity * material_specularity * pow(max(dotTemp, 0.0), material_shine);   
+                    }
+                    if(!u_usePointLight5){
+                        point5Weight = 0.0;
+                    } else {
+                        vec3 point5Dir = normalize(u_pointLightLoc5 - v_position.xyz);
+                        vec3 reflection = reflect(normalize(point5Dir), normalize(v_transformedNormal));
+                        float dotTemp = dot(normalize(reflection), normalize(v_position));
+                        point5Weight = light_specularity * material_specularity * pow(max(dotTemp, 0.0), material_shine);   
+                    }
+
+                    lightWeighting = u_ambientColor +                            // AMBIENT COLORING
+                        directionalColor * directionalWeight +
+                        point1Weight * u_pointLightCol1 +
+                        point2Weight * u_pointLightCol2 +
+                        point3Weight * u_pointLightCol3 +
+                        point4Weight * u_pointLightCol4 +
+                        point5Weight * u_pointLightCol5;
+                }
+
+                vec4 textureColor;
+                if(!u_useTextures){ // white by default
+                    textureColor = vec4(1.0, 1.0, 1.0, 1.0);
+                }
+                else{
+                    textureColor = texture2D(u_sampler, vec2(v_textureCoord.s, v_textureCoord.t));
+                }
+            
+                gl_FragColor = vec4(textureColor.rgb * lightWeighting, textureColor.a);
+            }
+          </script>
+
+    <script id="shader-vs" type="x-shader/x-vertex">
+        attribute vec3 a_position;  // vertex positions
+        attribute vec2 a_textureCoord;    // texture coords
+        attribute vec3 a_normal;    // vertex normals
+
+        uniform mat4 u_modelMatrix;          // model view matrix
+        uniform mat4 u_projectionMatrix;           // perspective matrix
+        uniform mat3 u_normalMatrix;           // normal matrix
+
+        uniform vec3 u_ambientColor;      // ambient color
+        uniform vec3 u_lightDirection; // direction of light
+        uniform vec3 u_directionalColor;	 // color of directional light
+
+
+        uniform bool u_useLighting;       // turns lighting on and off
+        uniform bool u_useDirectionalLight;
+
+        varying vec3 v_lightWeighting;    // output light weighting
+        varying vec2 v_textureCoord;      // output texture coords
+
+        uniform float u_materialShine;
+        uniform float u_lightSpecu;
+        uniform float u_materialSpecu;
+
+        uniform vec3 u_pointLightLoc1;
+        uniform vec3 u_pointLightLoc2;
+        uniform vec3 u_pointLightLoc3;
+        uniform vec3 u_pointLightLoc4;
+        uniform vec3 u_pointLightLoc5;
+
+        uniform vec3 u_pointLightCol1;
+        uniform vec3 u_pointLightCol2;
+        uniform vec3 u_pointLightCol3;
+        uniform vec3 u_pointLightCol4;
+        uniform vec3 u_pointLightCol5;
+
+        uniform bool u_usePointLight1;
+        uniform bool u_usePointLight2;
+        uniform bool u_usePointLight3;
+        uniform bool u_usePointLight4;
+        uniform bool u_usePointLight5;
+      
+        void main(void){
+            gl_Position = u_projectionMatrix * u_modelMatrix * vec4(a_position, 1.0);
+            v_textureCoord = a_textureCoord;
+
+            float light_specularity = u_lightSpecu;
+            float material_specularity = u_materialSpecu;
+            float material_shine = u_materialShine;
+
+            if(!u_useLighting){
+                v_lightWeighting = vec3(1.0, 1.0, 1.0);
+            }else {
+                vec3 transformedNormal = u_normalMatrix * a_normal;
+
+                float dirLightWeighting;
+                if(!u_useDirectionalLight){
+                    dirLightWeighting = 0.0;
+                }else{
+                    dirLightWeighting = max(dot(transformedNormal, u_lightDirection), 0.0);
+                    vec3 reflection = reflect(normalize(u_lightDirection), normalize(transformedNormal));
+                    vec3 p = (u_modelMatrix * vec4(a_position, 1.0)).xyz;
+                    float dotProd = dot(normalize(reflection), normalize(p));
+                    dirLightWeighting = light_specularity * material_specularity * pow(max(dotProd,0.0), material_shine);
+                }
+
+                float point1Weight;
+                float point2Weight;
+                float point3Weight;
+                float point4Weight;
+                float point5Weight;
+
+                vec3 v_transformedNormal = u_normalMatrix * a_normal;
+                vec3 position = (u_modelMatrix * vec4(a_position,1.0)).xyz;
+
+                if(!u_usePointLight1){
+                    point1Weight = 0.0;
+                } else {
+                    vec3 point1Dir = normalize(u_pointLightLoc1 - position.xyz);
+                    vec3 reflection = reflect(normalize(point1Dir), normalize(v_transformedNormal));
+                    float dotTemp = dot(normalize(reflection), normalize(position));
+                    point1Weight = light_specularity * material_specularity * pow(max(dotTemp, 0.0), material_shine);   
+                }
+
+                if(!u_usePointLight2){
+                    point2Weight = 0.0;
+                } else {
+                    vec3 point2Dir = normalize(u_pointLightLoc2 - position.xyz);
+                    vec3 reflection = reflect(normalize(point2Dir), normalize(v_transformedNormal));
+                    float dotTemp = dot(normalize(reflection), normalize(position));
+                    point2Weight = light_specularity * material_specularity * pow(max(dotTemp, 0.0), material_shine);   
+                }
+                if(!u_usePointLight3){
+                    point3Weight = 0.0;
+                } else {
+                    vec3 point3Dir = normalize(u_pointLightLoc3 - position.xyz);
+                    vec3 reflection = reflect(normalize(point3Dir), normalize(v_transformedNormal));
+                    float dotTemp = dot(normalize(reflection), normalize(position));
+                    point3Weight = light_specularity * material_specularity * pow(max(dotTemp, 0.0), material_shine);   
+                }
+                if(!u_usePointLight4){
+                    point4Weight = 0.0;
+                } else {
+                    vec3 point4Dir = normalize(u_pointLightLoc4 - position.xyz);
+                    vec3 reflection = reflect(normalize(point4Dir), normalize(v_transformedNormal));
+                    float dotTemp = dot(normalize(reflection), normalize(position));
+                    point4Weight = light_specularity * material_specularity * pow(max(dotTemp, 0.0), material_shine);   
+                }
+                if(!u_usePointLight5){
+                    point5Weight = 0.0;
+                } else {
+                    vec3 point5Dir = normalize(u_pointLightLoc5 - position.xyz);
+                    vec3 reflection = reflect(normalize(point5Dir), normalize(v_transformedNormal));
+                    float dotTemp = dot(normalize(reflection), normalize(position));
+                    point5Weight = light_specularity * material_specularity * pow(max(dotTemp, 0.0), material_shine);   
+                }
+
+                v_lightWeighting =
+                    u_ambientColor +
+                    u_directionalColor * dirLightWeighting +
+                    point1Weight * u_pointLightCol1 +
+                    point2Weight * u_pointLightCol2 +
+                    point3Weight * u_pointLightCol3 +
+                    point4Weight * u_pointLightCol4 +
+                    point5Weight * u_pointLightCol5;
+            }
+      }
+    </script>
+
+    <!-- vertex shader (per frag) -->
+    <script id="perfrag-shader-vs" type="x-shader/x-vertex">
+        attribute vec3 a_position;
+        attribute vec2 a_textureCoord;
+        attribute vec3 a_normal;
+      
+        uniform mat4 u_projectionMatrix;
+        uniform mat4 u_modelMatrix;
+        uniform mat3 u_normalMatrix;
+      
+        varying vec2 v_textureCoord;
+        varying vec3 v_transformedNormal;
+        varying vec3 v_position;
+      
+        void main(void){
+            v_position = (u_modelMatrix * vec4(a_position, 1.0)).xyz;
+            gl_Position = u_projectionMatrix * u_modelMatrix * vec4(a_position, 1.0);
+            v_textureCoord = a_textureCoord;
+            v_transformedNormal = u_normalMatrix * a_normal;
+        }
+    </script>
+
+
+
+    <script type="text/javascript" src="app2.js"></script>
+    <title>Project 4</title>
+</head>
+
+
+<body onload="initGL()">
+    <canvas id="webGLcanvas"></canvas>
+    <div id="inputs">
+        <div style="margin-right: 50px">
+            <h3>Lighting</h3>
+            <input type="checkbox" id="0" class="check" checked>Use Light
+            <input type="checkbox" id="1" class="check" checked>Use Directional Light
+            <input type="checkbox" id="2" class="track" checked>Light 1
+            <input type="checkbox" id="3" class="track" checked>Light 2
+            <input type="checkbox" id="4" class="track" checked>Light 3
+            <input type="checkbox" id="5" class="track" checked>Light 4
+            <input type="checkbox" id="6" class="track" checked>Light 5
+        </div>
+        <div style="float:left; margin-right: 50px" id="track">
+            <h3>Model</h3>
+            <input type="checkbox" id="9" class="check" checked>Use Texture
+        </div>
+        <div style="float:left; margin-right: 50px" id="track">
+            <h3>Shader Program</h3>
+            <input type="checkbox" id="7" class="check" checked>Use Per-Fragment Shader
+            <!-- <input type="checkbox" id="8" class="check" checked>Use Per-Vertex Shader -->
+        </div>
+        <div style="float:left">
+            <h3>Specularity</h3>
+            <input type="range" min="0" max="10" value="5" id="11">Material Shiness
+            <input type="range" min="0" max="10" value="5" id="12">Light Specularity
+            <input type="range" min="0" max="1" value="0.5" id="13">Material Specularity
+        </div>
+    </div>
+</body>
+
+
+</html>
